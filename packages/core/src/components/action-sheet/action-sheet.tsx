@@ -1,10 +1,14 @@
-import { Component, CssClassMap, Element, Event, EventEmitter, Listen, Prop } from '@stencil/core';
-import { Animation, AnimationBuilder, AnimationController, Config } from '../../index';
+import { Component, CssClassMap, Element, Event, EventEmitter, Listen, Method, Prop } from '@stencil/core';
+import { Animation, AnimationBuilder, AnimationController, Config, OverlayDismissEvent, OverlayDismissEventDetail } from '../../index';
 
+import { domControllerAsync, playAnimationAsync } from '../../utils/helpers';
 import { createThemedClasses } from '../../utils/theme';
 
 import iOSEnterAnimation from './animations/ios.enter';
 import iOSLeaveAnimation from './animations/ios.leave';
+
+import MdEnterAnimation from './animations/md.enter';
+import MdLeaveAnimation from './animations/md.leave';
 
 @Component({
   tag: 'ion-action-sheet',
@@ -27,32 +31,32 @@ export class ActionSheet {
   /**
    * @output {ActionSheetEvent} Emitted after the alert has loaded.
    */
-  @Event() ionActionSheetDidLoad: EventEmitter;
+  @Event() ionActionSheetDidLoad: EventEmitter<ActionSheetEventDetail>;
 
   /**
    * @output {ActionSheetEvent} Emitted after the alert has presented.
    */
-  @Event() ionActionSheetDidPresent: EventEmitter;
+  @Event() ionActionSheetDidPresent: EventEmitter<ActionSheetEventDetail>;
 
   /**
    * @output {ActionSheetEvent} Emitted before the alert has presented.
    */
-  @Event() ionActionSheetWillPresent: EventEmitter;
+  @Event() ionActionSheetWillPresent: EventEmitter<ActionSheetEventDetail>;
 
   /**
    * @output {ActionSheetEvent} Emitted before the alert has dismissed.
    */
-  @Event() ionActionSheetWillDismiss: EventEmitter;
+  @Event() ionActionSheetWillDismiss: EventEmitter<ActionSheetDismissEventDetail>;
 
   /**
    * @output {ActionSheetEvent} Emitted after the alert has dismissed.
    */
-  @Event() ionActionSheetDidDismiss: EventEmitter;
+  @Event() ionActionSheetDidDismiss: EventEmitter<ActionSheetDismissEventDetail>;
 
   /**
    * @output {ActionSheetEvent} Emitted after the alert has unloaded.
    */
-  @Event() ionActionSheetDidUnload: EventEmitter;
+  @Event() ionActionSheetDidUnload: EventEmitter<ActionSheetEventDetail>;
 
   @Prop({ connect: 'ion-animation-controller' }) animationCtrl: AnimationController;
   @Prop({ context: 'config' }) config: Config;
@@ -64,89 +68,68 @@ export class ActionSheet {
   @Prop() enableBackdropDismiss: boolean = true;
   @Prop() translucent: boolean = false;
 
+  @Prop() animate: boolean = true;
   @Prop() enterAnimation: AnimationBuilder;
-  @Prop() exitAnimation: AnimationBuilder;
+  @Prop() leaveAnimation: AnimationBuilder;
+
   @Prop() actionSheetId: string;
 
-
+  @Method()
   present() {
-    return new Promise<void>(resolve => {
-      this._present(resolve);
-    });
-  }
-
-  private _present(resolve: Function) {
     if (this.animation) {
       this.animation.destroy();
       this.animation = null;
     }
-    this.ionActionSheetWillPresent.emit({ actionSheet: this });
+    this.ionActionSheetWillPresent.emit();
 
     // get the user's animation fn if one was provided
-    let animationBuilder = this.enterAnimation;
-
-    if (!animationBuilder) {
-      // user did not provide a custom animation fn
-      // decide from the config which animation to use
-      animationBuilder = iOSEnterAnimation;
-    }
+    const animationBuilder = this.enterAnimation || this.config.get('actionSheetEnter', this.mode === 'ios' ? iOSEnterAnimation : MdEnterAnimation);
 
     // build the animation and kick it off
     this.animationCtrl.create(animationBuilder, this.el).then(animation => {
       this.animation = animation;
-
-      animation.onFinish((a: any) => {
-        a.destroy();
-        this.componentDidEnter();
-        resolve();
-      }).play();
+      if (!this.animate) {
+        // if the duration is 0, it won't actually animate I don't think
+        // TODO - validate this
+        this.animation = animation.duration(0);
+      }
+      return playAnimationAsync(animation);
+    }).then((animation) => {
+      animation.destroy();
+      this.ionActionSheetDidPresent.emit();
     });
   }
 
+  @Method()
   dismiss() {
     if (this.animation) {
       this.animation.destroy();
       this.animation = null;
     }
-    return new Promise(resolve => {
-      this.ionActionSheetWillDismiss.emit({ actionSheet: this });
+    this.ionActionSheetWillDismiss.emit();
+    const animationBuilder = this.leaveAnimation || this.config.get('actionSheetLeave', this.mode === 'ios' ? iOSEnterAnimation : MdEnterAnimation);
 
-      // get the user's animation fn if one was provided
-      let animationBuilder = this.exitAnimation;
-      if (!animationBuilder) {
-        // user did not provide a custom animation fn
-        // decide from the config which animation to use
-        animationBuilder = iOSLeaveAnimation;
-      }
 
-      // build the animation and kick it off
-      this.animationCtrl.create(animationBuilder, this.el).then(animation => {
-        this.animation = animation;
-
-        animation.onFinish((a: any) => {
-          a.destroy();
-          this.ionActionSheetDidDismiss.emit({ actionSheet: this });
-
-          Context.dom.write(() => {
-            this.el.parentNode.removeChild(this.el);
-          });
-
-          resolve();
-        }).play();
+    return this.animationCtrl.create(animationBuilder, this.el).then(animation => {
+      this.animation = animation;
+      return playAnimationAsync(animation);
+    }).then((animation) => {
+      animation.destroy();
+      return domControllerAsync(Context.dom.write, () => {
+        this.el.parentNode.removeChild(this.el);
       });
+    }).then(() => {
+      this.ionActionSheetDidDismiss.emit();
     });
   }
 
   componentDidLoad() {
-    this.ionActionSheetDidLoad.emit({ actionSheet: this });
+    this.ionActionSheetDidLoad.emit();
   }
 
-  componentDidEnter() {
-    this.ionActionSheetDidPresent.emit({ actionSheet: this });
-  }
 
   componentDidUnload() {
-    this.ionActionSheetDidUnload.emit({ actionSheet: this });
+    this.ionActionSheetDidUnload.emit();
   }
 
   @Listen('ionDismiss')
@@ -159,9 +142,6 @@ export class ActionSheet {
 
   protected backdropClick() {
     if (this.enableBackdropDismiss) {
-      // const opts: NavOptions = {
-      //   minClickBlockDuration: 400
-      // };
       this.dismiss();
     }
   }
@@ -288,10 +268,25 @@ export interface ActionSheetButton {
   handler?: () => boolean | void;
 }
 
-export interface ActionSheetEvent extends Event {
-  detail: {
-    actionSheet: ActionSheet;
-  };
+export interface ActionSheetEvent extends CustomEvent {
+  detail: ActionSheetEventDetail;
 }
 
-export { iOSEnterAnimation, iOSLeaveAnimation };
+export interface ActionSheetEventDetail {
+
+}
+
+export interface ActionSheetDismissEventDetail extends OverlayDismissEventDetail {
+  // keep this just for the sake of static types and potential future extensions
+}
+
+export interface ActionSheetDismissEvent extends OverlayDismissEvent {
+  // keep this just for the sake of static types and potential future extensions
+}
+
+export {
+  iOSEnterAnimation as ActionSheetiOSEnterAnimation,
+  iOSLeaveAnimation as ActionSheetiOSLeaveAnimation,
+  MdEnterAnimation as ActionSheetMDEnterAnimation,
+  MdLeaveAnimation as ActionSheetMDLeaveAnimation,
+};
