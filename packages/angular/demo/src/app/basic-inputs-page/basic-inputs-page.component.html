@@ -3,8 +3,9 @@
 </div>
 
 <ion-grid>
-
-  <ion-row>
+  Test
+  <ion-checkbox id="ionCheckbox" name="ionCheckbox" (ionBlur)="onBlur($event)"></ion-checkbox>
+  <!--<ion-row>
     <ion-col>
       <h2>Text Input</h2>
     </ion-col>
@@ -55,33 +56,9 @@
     <ion-col>
     </ion-col>
   </ion-row>
+-->
 
-  <ion-row>
-    <ion-col>
-      <h2>Checkbox</h2>
-    </ion-col>
-  </ion-row>
-  <ion-row>
-    <ion-col>
-      <label for="stdCheckbox">Standard Checkbox</label>
-      <input type="checkbox" id="stdCheckbox" name="stdCheckbox" [(ngModel)]="checkboxValue" (blur)="onBlur($event)" />
-    </ion-col>
-    <ion-col>
-      Value:
-      <span id="checkboxOutput">{{checkboxValue}}</span>
-    </ion-col>
-  </ion-row>
-  <ion-row>
-    <ion-col>
-      <ion-item>
-        <ion-label>Ionic Checkbox</ion-label>
-        <ion-checkbox id="ionCheckbox" name="ionCheckbox" [(ngModel)]="checkboxValue" (ionBlur)="onBlur($event)"></ion-checkbox>
-      </ion-item>
-    </ion-col>
-    <ion-col>
-    </ion-col>
-  </ion-row>
-
+<!--
   <ion-row>
     <ion-col>
       <h2>Toggle</h2>
@@ -110,7 +87,7 @@
 
   <ion-row>
     <ion-col>
-      <h2>Date Time Picker</h2>
+      <h2>Date Tim Picker</h2>
     </ion-col>
   </ion-row>
   <ion-row>
@@ -133,6 +110,8 @@
     <ion-col>
     </ion-col>
   </ion-row>
+
+-->
 </ion-grid>
 
 <a href='home'>Home</a>
