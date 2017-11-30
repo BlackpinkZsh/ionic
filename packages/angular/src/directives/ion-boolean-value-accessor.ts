@@ -17,7 +17,7 @@ import {
   ]
 })
 export class IonBooleanValueAccessor implements ControlValueAccessor {
-  constructor(private element: ElementRef, private renderer: Renderer2) {
+  constructor(/*private element: ElementRef, */private renderer: Renderer2) {
     this.onChange = () => {};
     this.onTouched = () => {};
   }
@@ -26,7 +26,7 @@ export class IonBooleanValueAccessor implements ControlValueAccessor {
   onTouched: () => void;
 
   writeValue(value: any) {
-    this.renderer.setProperty(this.element.nativeElement, 'checked', value);
+    //this.renderer.setProperty(this.element.nativeElement, 'checked', value);
   }
 
   @HostListener('ionChange', ['$event.target.checked'])
@@ -48,10 +48,11 @@ export class IonBooleanValueAccessor implements ControlValueAccessor {
   }
 
   setDisabledState(isDisabled: boolean): void {
-    this.renderer.setProperty(
+    /*this.renderer.setProperty(
       this.element.nativeElement,
       'disabled',
       isDisabled
     );
+    */
   }
 }
