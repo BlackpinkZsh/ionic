@@ -7,7 +7,7 @@ import {
 
 @Directive({
   /* tslint:disable-next-line:directive-selector */
-  selector: 'taco', //'ion-checkbox,ion-toggle',
+  selector: 'ion-checkbox,ion-toggle',
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,

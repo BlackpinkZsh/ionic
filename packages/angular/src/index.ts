@@ -3,4 +3,4 @@ export { IonicAngularModule } from './module';
 export { AlertController, AlertProxy } from './providers/alert-controller';
 export { App } from './providers/app';
 export { NavController } from './providers/nav-controller';
-
+export { DirectiveOfDoomModule } from './directives/test.module';
